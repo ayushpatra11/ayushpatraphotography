@@ -103,15 +103,9 @@ jobs:
           ADMIN_PASSWORD: ci-placeholder
           AUTH_SECRET: ci-placeholder-32-chars-minimum-x
 
-      - name: Bundle worker
-        # @cloudflare/next-on-pages outputs a multi-file worker (_worker.js/ directory).
-        # wrangler deploy (Workers) can only upload a single entry file, so
-        # scripts/bundle-worker.mjs patches out variable dynamic imports and runs
-        # esbuild to produce .vercel/output/static/_worker.bundled.js.
-        run: node scripts/bundle-worker.mjs
-
       - name: Deploy to Cloudflare Workers
-        # wrangler.toml points main at _worker.bundled.js (single-file bundle).
+        # wrangler.toml declares main + [assets] so `wrangler deploy` picks up
+        # .vercel/output/static/_worker.js and serves the rest as static assets.
         # Uses wrangler@^3 from devDependencies — avoids v4 CLI changes.
         id: deploy
         env:

@@ -9,9 +9,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
     "test": "vitest run",
-    "bundle-worker": "node scripts/bundle-worker.mjs",
-    "preview": "npx @cloudflare/next-on-pages && node scripts/bundle-worker.mjs && wrangler dev",
-    "deploy": "npx @cloudflare/next-on-pages && node scripts/bundle-worker.mjs && wrangler deploy"
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "gsap": "^3.12.5",
