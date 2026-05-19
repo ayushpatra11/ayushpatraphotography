@@ -20,13 +20,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for Cloudflare Pages
+        run: npx @cloudflare/next-on-pages
+        env:
+          # Needed at build time so Next.js can type-check env references
+          ADMIN_PASSWORD: placeholder
+          AUTH_SECRET: placeholder
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         id: deploy
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy . --project-name=ayushpatraphotography --branch=${{ github.ref_name }}
+          command: pages deploy .vercel/output/static --project-name=ayushpatraphotography --branch=${{ github.ref_name }}
 
       - name: Comment preview URL on PR
         if: github.event_name == 'pull_request'
@@ -38,5 +54,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `### Cloudflare Pages Preview\n\n**URL:** ${url}\n\nDeploy triggered by commit \`${context.sha.slice(0, 7)}\`.`
+              body: `### Cloudflare Pages Preview\n\n**URL:** ${url}\n\nCommit: \`${context.sha.slice(0, 7)}\``
             });
