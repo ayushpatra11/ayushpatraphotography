@@ -81,6 +81,32 @@ export default function StudioPortal() {
     setPreviews(imgs.map(f => URL.createObjectURL(f)))
   }
 
+  async function resizeToWebP(file: File, maxPx: number, quality: number): Promise<Blob | null> {
+    try {
+      const bitmap = await createImageBitmap(file)
+      const scale = Math.min(1, maxPx / Math.max(bitmap.width, bitmap.height))
+      const w = Math.round(bitmap.width * scale)
+      const h = Math.round(bitmap.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w; canvas.height = h
+      canvas.getContext('2d')!.drawImage(bitmap, 0, 0, w, h)
+      bitmap.close()
+      return await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/webp', quality))
+    } catch { return null }
+  }
+
+  async function generateLQIP(file: File): Promise<string | null> {
+    try {
+      const bitmap = await createImageBitmap(file)
+      const w = 20, h = Math.round(20 * bitmap.height / bitmap.width)
+      const canvas = document.createElement('canvas')
+      canvas.width = w; canvas.height = h
+      canvas.getContext('2d')!.drawImage(bitmap, 0, 0, w, h)
+      bitmap.close()
+      return canvas.toDataURL('image/webp', 0.3)
+    } catch { return null }
+  }
+
   async function handleUpload(e: React.FormEvent) {
     e.preventDefault()
     if (selectedFiles.length === 0) return
@@ -88,8 +114,20 @@ export default function StudioPortal() {
     setUploadProgress(0)
 
     for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i]
+
+      // Resize in-browser before upload: full (2400px) and thumbnail (900px).
+      // Falls back to original if the browser can't decode the format (e.g. HEIC on Chrome).
+      const [fullBlob, thumbBlob, lqip] = await Promise.all([
+        resizeToWebP(file, 2400, 0.85),
+        resizeToWebP(file, 900, 0.78),
+        generateLQIP(file),
+      ])
+
       const fd = new FormData()
-      fd.append('image', selectedFiles[i])
+      fd.append('image', fullBlob ?? file, 'image.webp')
+      if (thumbBlob) fd.append('thumb', thumbBlob, 'thumb.webp')
+      if (lqip) fd.append('lqip', lqip)
       fd.append('caption', caption)
       fd.append('location', location)
       fd.append('date', date)

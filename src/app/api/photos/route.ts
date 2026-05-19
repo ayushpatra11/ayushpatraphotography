@@ -1,5 +1,5 @@
 import { getRequestContext } from '@cloudflare/next-on-pages'
-import { getManifest, putManifest, extFromMime } from '@/lib/r2'
+import { getManifest, putManifest } from '@/lib/r2'
 import { json } from '@/lib/response'
 import { verifySession, getSessionCookie } from '@/lib/auth'
 import type { PhotoMeta } from '@/types'
@@ -32,18 +32,25 @@ export async function POST(request: Request): Promise<Response> {
     if (!image) return json({ error: 'No image provided' }, { status: 400 })
 
     const id = crypto.randomUUID()
-    const ext = extFromMime(image.type)
-    const key = `photos/${id}.${ext}`
+    // Store at photos/{id} (no extension) — content-type lives in R2 httpMetadata.
+    // The image route can fetch it with a single R2 GET, no manifest lookup needed.
+    const key = `photos/${id}`
 
     await env.R2_BUCKET.put(key, await image.arrayBuffer(), {
       httpMetadata: { contentType: image.type },
     })
 
+    // Store thumbnail if the client sent one (resized WebP)
+    const thumb = formData.get('thumb') as File | null
+    if (thumb) {
+      await env.R2_BUCKET.put(`${key}.t`, await thumb.arrayBuffer(), {
+        httpMetadata: { contentType: 'image/webp' },
+      })
+    }
+
     const tagsRaw = (formData.get('tags') as string) ?? ''
-    const tags = tagsRaw
-      .split(',')
-      .map(t => t.trim())
-      .filter(Boolean)
+    const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean)
+    const lqip = (formData.get('lqip') as string | null) ?? undefined
 
     const photo: PhotoMeta = {
       id,
@@ -55,6 +62,7 @@ export async function POST(request: Request): Promise<Response> {
       device: (formData.get('device') as string) ?? '',
       tags,
       uploadedAt: Date.now(),
+      ...(lqip && { lqip }),
     }
 
     const manifest = await getManifest(env.R2_BUCKET)

@@ -236,12 +236,25 @@ body.cursor-hover .cursor-ring {
   transition: transform 0.35s var(--ease-out);
 }
 
+.gallery-item-lqip {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(24px);
+  transform: scale(1.08);
+  transition: opacity 0.4s;
+}
+.gallery-item.img-loaded .gallery-item-lqip { opacity: 0; }
+
 .gallery-item-img {
   width: 100%;
   height: auto;
   display: block;
-  transition: filter 0.4s;
+  opacity: 0;
+  transition: opacity 0.4s, filter 0.4s;
 }
+.gallery-item.img-loaded .gallery-item-img { opacity: 1; }
 
 .gallery-item:hover .gallery-item-img {
   filter: brightness(0.72);

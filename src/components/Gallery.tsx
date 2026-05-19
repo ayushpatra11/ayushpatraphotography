@@ -191,11 +191,15 @@ export default function Gallery() {
                 aria-label={photo.caption || `Photo ${i + 1}`}
                 onKeyDown={e => e.key === 'Enter' && setLightboxIndex(i)}
               >
+                {photo.lqip && (
+                  <div className="gallery-item-lqip" style={{ backgroundImage: `url(${photo.lqip})` }} aria-hidden="true" />
+                )}
                 <img
                   className="gallery-item-img"
-                  src={`/api/photos/${photo.id}/image`}
+                  src={`/api/photos/${photo.id}/thumb`}
                   alt={photo.caption || ''}
                   loading="lazy"
+                  onLoad={e => e.currentTarget.closest('.gallery-item')?.classList.add('img-loaded')}
                 />
                 <div className="gallery-item-caption">
                   {photo.caption && <p className="caption-text">{photo.caption}</p>}

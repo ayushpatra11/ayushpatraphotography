@@ -8,6 +8,7 @@ export interface PhotoMeta {
   device: string
   tags: string[]
   uploadedAt: number
+  lqip?: string
 }
 
 export interface Manifest {

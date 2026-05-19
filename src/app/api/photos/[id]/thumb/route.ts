@@ -13,19 +13,26 @@ export async function GET(
     const { id } = await params
     const { env } = getRequestContext()
 
-    // New uploads use key = photos/{id} (no extension).
-    // Try that first — one R2 read instead of manifest + image.
-    const direct = await env.R2_BUCKET.get(`photos/${id}`)
-    if (direct) {
-      return new Response(direct.body, {
+    // Try thumbnail first (photos/{id}.t)
+    const thumb = await env.R2_BUCKET.get(`photos/${id}.t`)
+    if (thumb) {
+      return new Response(thumb.body, {
+        headers: { 'Content-Type': 'image/webp', 'Cache-Control': CACHE },
+      })
+    }
+
+    // No thumbnail — serve the full image (single read for new uploads)
+    const full = await env.R2_BUCKET.get(`photos/${id}`)
+    if (full) {
+      return new Response(full.body, {
         headers: {
-          'Content-Type': direct.httpMetadata?.contentType ?? 'image/jpeg',
+          'Content-Type': full.httpMetadata?.contentType ?? 'image/jpeg',
           'Cache-Control': CACHE,
         },
       })
     }
 
-    // Fallback: old uploads stored as photos/{id}.{ext} — find key via manifest.
+    // Last resort: old format uploads, look up key in manifest
     const manifest = await getManifest(env.R2_BUCKET)
     const photo = manifest.photos.find(p => p.id === id)
     if (!photo) return new Response('Not found', { status: 404 })
