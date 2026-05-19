@@ -9,8 +9,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
     "test": "vitest run",
-    "preview": "npm run build && wrangler dev",
-    "deploy": "npm run build && wrangler deploy"
+    "preview": "npx @cloudflare/next-on-pages && wrangler pages dev .vercel/output/static",
+    "deploy": "npx @cloudflare/next-on-pages && wrangler pages deploy .vercel/output/static --project-name ayushpatraphotography"
   },
   "dependencies": {
     "gsap": "^3.12.5",
