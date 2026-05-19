@@ -882,3 +882,78 @@ body.cursor-hover .cursor-ring {
   .gallery-grid { columns: 1; }
   .hero-title { font-size: clamp(72px, 22vw, 120px); }
 }
+
+/* ── Studio auth / login ──────────────────────────────────── */
+.studio-auth {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.studio-auth-loading {
+  color: var(--fg-dim);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+}
+.studio-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 320px;
+}
+.studio-auth-title {
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fg);
+  font-weight: 400;
+  margin: 0 0 8px;
+}
+.studio-auth-sub {
+  font-size: 12px;
+  color: var(--fg-dim);
+  margin: 0;
+}
+.studio-auth-input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: var(--fg);
+  font-size: 13px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.studio-auth-input:focus { border-color: rgba(255,255,255,0.3); }
+.studio-auth-error {
+  font-size: 12px;
+  color: #e57373;
+  margin: 0;
+}
+.studio-auth-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  color: var(--fg);
+  cursor: pointer;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  padding: 10px 16px;
+  text-transform: uppercase;
+  transition: background 0.2s, border-color 0.2s;
+}
+.studio-auth-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.14);
+  border-color: rgba(255,255,255,0.22);
+}
+.studio-auth-btn:disabled { opacity: 0.4; cursor: default; }
+.studio-auth-back {
+  font-size: 11px;
+  color: var(--fg-dim);
+  letter-spacing: 0.1em;
+  text-align: center;
+  transition: color 0.2s;
+}
+.studio-auth-back:hover { color: var(--fg); }
