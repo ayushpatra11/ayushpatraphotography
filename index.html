@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ayush Patra Photography</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Grain Overlay -->
+  <canvas id="grain" aria-hidden="true"></canvas>
+
+  <!-- Custom Cursor -->
+  <div class="cursor-ring" id="cursorRing"></div>
+  <div class="cursor-dot" id="cursorDot"></div>
+
+  <!-- Loading Screen -->
+  <div id="loader">
+    <div class="loader-text">
+      <span class="loader-word" id="loaderWord1">AYUSH PATRA</span>
+      <span class="loader-word" id="loaderWord2">PHOTOGRAPHY</span>
+    </div>
+    <div class="loader-bar"><div class="loader-bar-fill" id="loaderBarFill"></div></div>
+  </div>
+
+  <!-- Header -->
+  <header id="header">
+    <a class="header-logo" href="#">AP</a>
+    <nav class="header-nav">
+      <a href="https://www.instagram.com/patrasarchive/" target="_blank" rel="noopener noreferrer" class="nav-instagram" aria-label="Instagram">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+          <circle cx="12" cy="12" r="5"/>
+          <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>@patrasarchive</span>
+      </a>
+      <button class="btn-upload" id="btnOpenUpload" aria-label="Upload photo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+        </svg>
+        Upload
+      </button>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section id="hero">
+    <div class="hero-content">
+      <h1 class="hero-title" id="heroTitle">
+        <span class="hero-line" id="heroLine1">AYUSH</span>
+        <span class="hero-line" id="heroLine2">PATRA</span>
+      </h1>
+      <div class="hero-sub" id="heroSub">PHOTOGRAPHY</div>
+      <div class="hero-divider" id="heroDivider"></div>
+      <p class="hero-tagline" id="heroTagline">Moments in light &amp; shadow</p>
+    </div>
+    <div class="hero-scroll-indicator" id="scrollIndicator">
+      <span>Scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- Gallery -->
+  <section id="gallery">
+    <div class="gallery-header">
+      <span class="gallery-count" id="galleryCount">0 photographs</span>
+    </div>
+    <div class="gallery-grid" id="galleryGrid">
+      <!-- Empty state -->
+      <div class="gallery-empty" id="galleryEmpty">
+        <div class="empty-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </div>
+        <p class="empty-title">Your story begins here</p>
+        <p class="empty-sub">Upload your first photograph to begin the gallery</p>
+        <button class="btn-empty-upload" id="btnEmptyUpload">Upload a photo</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer id="footer">
+    <span class="footer-name">Ayush Patra Photography</span>
+    <a href="https://www.instagram.com/patrasarchive/" target="_blank" rel="noopener noreferrer" class="footer-instagram">@patrasarchive</a>
+  </footer>
+
+  <!-- Upload Modal -->
+  <div class="modal-overlay" id="uploadModal" role="dialog" aria-modal="true" aria-label="Upload photo">
+    <div class="modal-panel">
+      <button class="modal-close" id="modalClose" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      <h2 class="modal-title">Add a photograph</h2>
+
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept="image/*" hidden multiple />
+        <div class="drop-zone-inner" id="dropZoneInner">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+          </svg>
+          <p>Drag &amp; drop or <button class="drop-browse" id="dropBrowse">browse</button></p>
+          <p class="drop-hint">JPG, PNG, WEBP — any size</p>
+        </div>
+        <div class="drop-preview" id="dropPreview"></div>
+      </div>
+
+      <div class="form-fields" id="formFields">
+        <div class="field-group">
+          <label class="field-label" for="fieldCaption">Caption</label>
+          <input class="field-input" type="text" id="fieldCaption" placeholder="What does this photograph mean?" />
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label" for="fieldLocation">Location</label>
+            <input class="field-input" type="text" id="fieldLocation" placeholder="City, Country" />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="fieldDate">Date</label>
+            <input class="field-input" type="date" id="fieldDate" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="fieldDevice">Camera / Device</label>
+          <input class="field-input" type="text" id="fieldDevice" placeholder="e.g. Fujifilm X100VI" />
+        </div>
+      </div>
+
+      <button class="btn-submit" id="btnSubmit">
+        <span id="submitText">Save to gallery</span>
+        <div class="submit-spinner" id="submitSpinner" hidden></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer">
+    <button class="lightbox-close" id="lightboxClose" aria-label="Close">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+    <button class="lightbox-arrow lightbox-prev" id="lightboxPrev" aria-label="Previous">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+    <button class="lightbox-arrow lightbox-next" id="lightboxNext" aria-label="Next">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
+    </button>
+    <div class="lightbox-stage">
+      <img class="lightbox-img" id="lightboxImg" src="" alt="" />
+    </div>
+    <div class="lightbox-meta" id="lightboxMeta">
+      <p class="lightbox-caption" id="lightboxCaption"></p>
+      <div class="lightbox-info" id="lightboxInfo"></div>
+      <button class="lightbox-delete" id="lightboxDelete" aria-label="Delete photo">Delete</button>
+    </div>
+    <div class="lightbox-counter" id="lightboxCounter"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
