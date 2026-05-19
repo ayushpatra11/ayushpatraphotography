@@ -10,9 +10,13 @@ export async function POST(request: Request): Promise<Response> {
 
     // Distinguish misconfiguration from wrong password so the server-side
     // logs are useful and the client gets a meaningful status code.
-    if (!env.ADMIN_PASSWORD || !env.AUTH_SECRET) {
-      console.error('[auth/login] ADMIN_PASSWORD or AUTH_SECRET secret not set in Cloudflare Pages environment variables')
-      return json({ error: 'Server not configured' }, { status: 503 })
+    if (!env.ADMIN_PASSWORD) {
+      console.error('[auth/login] ADMIN_PASSWORD secret is not set in Cloudflare Pages environment variables')
+      return json({ error: 'Server not configured: missing ADMIN_PASSWORD' }, { status: 503 })
+    }
+    if (!env.AUTH_SECRET) {
+      console.error('[auth/login] AUTH_SECRET secret is not set in Cloudflare Pages environment variables')
+      return json({ error: 'Server not configured: missing AUTH_SECRET' }, { status: 503 })
     }
 
     const body = await request.json() as { password?: string }
