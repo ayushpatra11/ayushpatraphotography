@@ -15,10 +15,11 @@
  *
  * wrangler.toml points `main` at the bundled output.
  */
-import { readFileSync, writeFileSync, readdirSync, statSync, unlinkSync } from 'node:fs'
+import { readFileSync, writeFileSync, readdirSync, existsSync, unlinkSync } from 'node:fs'
 import { join, relative, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
+import { execSync } from 'node:child_process'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
@@ -26,6 +27,13 @@ const WORKER_DIR = join(ROOT, '.vercel/output/static/_worker.js')
 const DIST_DIR = join(WORKER_DIR, '__next-on-pages-dist__')
 const INDEX_JS = join(WORKER_DIR, 'index.js')
 const OUTPUT_FILE = join(ROOT, '.vercel/output/static/_worker.bundled.js')
+
+// Run @cloudflare/next-on-pages if the worker output doesn't exist yet
+// (happens when bundle-worker runs without a prior build step, e.g. `wrangler deploy` locally)
+if (!existsSync(INDEX_JS)) {
+  console.log('[bundle-worker] Worker not built yet — running @cloudflare/next-on-pages...')
+  execSync('npx @cloudflare/next-on-pages', { stdio: 'inherit', cwd: ROOT })
+}
 
 function walk(dir, files = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -44,7 +52,7 @@ const mapEntries = []
 
 for (let i = 0; i < distFiles.length; i++) {
   const file = distFiles[i]
-  // rel  = "__next-on-pages-dist__/functions/api/auth/check.func.js"
+  // rel    = "__next-on-pages-dist__/functions/api/auth/check.func.js"
   // relDot = "./__next-on-pages-dist__/functions/api/auth/check.func.js"
   const rel = relative(WORKER_DIR, file)
   const relDot = './' + rel
@@ -57,23 +65,27 @@ for (let i = 0; i < distFiles.length; i++) {
 
 let src = readFileSync(INDEX_JS, 'utf8')
 
-// Patch 1: function/middleware dispatch
-//   before: let h=await import(e.entrypoint);
-//   after:  let h=__resolveDynamicImport(e.entrypoint);
-const P1_BEFORE = 'let h=await import(e.entrypoint);'
-const P1_AFTER = 'let h=__resolveDynamicImport(e.entrypoint);'
-if (!src.includes(P1_BEFORE)) {
-  throw new Error(`[bundle-worker] Patch 1 target not found. Has @cloudflare/next-on-pages changed its output format?`)
+// Patch 1: function/middleware dispatch.
+// Matches: await import(e.entrypoint)
+// The surrounding `let <varname>=` is NOT included — the minifier renames the
+// variable between fresh and cached builds (e.g. `h` vs `d`), so we only
+// replace the import call expression itself.
+const P1_RE = /await import\(e\.entrypoint\)/
+if (!P1_RE.test(src)) {
+  const ctx = src.slice(Math.max(0, src.indexOf('entrypoint') - 60), src.indexOf('entrypoint') + 80)
+  console.error('[bundle-worker] Context around "entrypoint":', JSON.stringify(ctx))
+  throw new Error('[bundle-worker] Patch 1 failed: could not find "await import(e.entrypoint)"')
 }
-src = src.replace(P1_BEFORE, P1_AFTER)
+src = src.replace(P1_RE, '__resolveDynamicImport(e.entrypoint)')
 
-// Patch 2: cache module loader
-//   before: async function T(e){return import(e)}
-//   after:  function T(e){return Promise.resolve(__resolveDynamicImport(e))}
+// Patch 2: cache module loader.
+// Matches: async function T(e){return import(e)}
 const P2_BEFORE = 'async function T(e){return import(e)}'
 const P2_AFTER = 'function T(e){return Promise.resolve(__resolveDynamicImport(e))}'
 if (!src.includes(P2_BEFORE)) {
-  throw new Error(`[bundle-worker] Patch 2 target not found. Has @cloudflare/next-on-pages changed its output format?`)
+  const ctx = src.slice(Math.max(0, src.indexOf('import(e)') - 60), src.indexOf('import(e)') + 80)
+  console.error('[bundle-worker] Context around "import(e)":', JSON.stringify(ctx))
+  throw new Error('[bundle-worker] Patch 2 failed: could not find "async function T(e){return import(e)}"')
 }
 src = src.replace(P2_BEFORE, P2_AFTER)
 

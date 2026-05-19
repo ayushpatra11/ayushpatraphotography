@@ -7,7 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 # bundle-worker.mjs patches variable dynamic imports and runs esbuild to produce
 # a single file that wrangler can upload.
 [build]
-command = "npx @cloudflare/next-on-pages && node scripts/bundle-worker.mjs"
+command = "node scripts/bundle-worker.mjs"
 
 main = ".vercel/output/static/_worker.bundled.js"
 
