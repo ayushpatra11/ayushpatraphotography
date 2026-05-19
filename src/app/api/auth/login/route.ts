@@ -1,3 +1,6 @@
+import { getRequestContext } from '@cloudflare/next-on-pages'
+import { createSession, COOKIE_NAME } from '@/lib/auth'
+
 export async function POST(request: Request) {
   try {
     const { env } = getRequestContext()
