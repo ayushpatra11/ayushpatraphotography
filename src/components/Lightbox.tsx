@@ -8,7 +8,7 @@ interface Props {
   index: number
   onClose: () => void
   onNavigate: (i: number) => void
-  onDelete: (id: string) => void
+  onDelete?: (id: string) => void
 }
 
 function formatDate(d: string) {
@@ -93,14 +93,16 @@ export default function Lightbox({ photos, index, onClose, onNavigate, onDelete 
             {photo.tags.map(t => <span key={t} className="lightbox-tag">{t}</span>)}
           </div>
         )}
-        <button
-          className="lightbox-delete"
-          onClick={() => {
-            if (confirm('Delete this photograph?')) onDelete(photo.id)
-          }}
-        >
-          Delete
-        </button>
+        {onDelete && (
+          <button
+            className="lightbox-delete"
+            onClick={() => {
+              if (confirm('Delete this photograph?')) onDelete(photo.id)
+            }}
+          >
+            Delete
+          </button>
+        )}
       </div>
 
       <div className="lightbox-counter">{index + 1} / {photos.length}</div>

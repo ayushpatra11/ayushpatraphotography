@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { PhotoMeta } from '@/types'
 import Lightbox from './Lightbox'
 
@@ -97,16 +97,6 @@ export default function Gallery() {
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
-
-  const handleDelete = useCallback(async (id: string) => {
-    await fetch(`/api/photos/${id}`, { method: 'DELETE' })
-    setPhotos(prev => prev.filter(p => p.id !== id))
-    setLightboxIndex(prev => {
-      if (prev === null) return null
-      const newLen = photos.length - 1
-      return newLen === 0 ? null : Math.min(prev, newLen - 1)
-    })
-  }, [photos.length])
 
   function onTileMouseEnter(e: React.MouseEvent<HTMLDivElement>) {
     // Cache rect on enter — getBoundingClientRect on every mousemove forces layout
@@ -239,7 +229,6 @@ export default function Gallery() {
           index={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onNavigate={setLightboxIndex}
-          onDelete={handleDelete}
         />
       )}
     </>
