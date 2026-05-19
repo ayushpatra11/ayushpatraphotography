@@ -8,6 +8,7 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
+  return json({ error: 'Authentication required' }, { status: 403 })
   try {
     const { id } = await params
     const { env } = getRequestContext()

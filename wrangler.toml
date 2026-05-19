@@ -7,6 +7,9 @@ compatibility_flags = ["nodejs_compat"]
 # so dynamic imports between route modules work natively on Pages.
 pages_build_output_dir = ".vercel/output/static"
 
+[build]
+command = "npx @cloudflare/next-on-pages"
+
 # Create this bucket in Cloudflare dashboard → R2 before first deploy,
 # then add the binding under Pages → Settings → Functions → R2 bucket bindings.
 [[r2_buckets]]
