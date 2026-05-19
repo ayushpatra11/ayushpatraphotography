@@ -68,9 +68,10 @@ jobs:
         # internally). This validates both compilation and CF edge compatibility.
         run: npm run build
 
-  # ── Cloudflare Workers deploy ─────────────────────────────
-  # wrangler deploy reads wrangler.toml (main + [assets]) and publishes
-  # the @cloudflare/next-on-pages output as a Worker with static assets.
+  # ── Cloudflare Pages deploy ───────────────────────────────
+  # wrangler pages deploy uploads the full .vercel/output/static directory,
+  # including _worker.js/ with all route modules, so dynamic imports work
+  # natively — no custom bundler needed.
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
@@ -97,17 +98,17 @@ jobs:
         # script is itself @cloudflare/next-on-pages.
         run: npx @cloudflare/next-on-pages
 
-      - name: Deploy to Cloudflare Workers
-        # wrangler.toml declares main + [assets] so `wrangler deploy` picks up
-        # .vercel/output/static/_worker.js and serves the rest as static assets.
-        # Uses wrangler@^3 from devDependencies — avoids v4 CLI changes.
+      - name: Deploy to Cloudflare Pages
+        # wrangler pages deploy uploads the entire output directory so the
+        # multi-file _worker.js/ functions bundle works without a custom bundler.
         id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          DEPLOY_URL=$(./node_modules/.bin/wrangler deploy \
-            2>&1 | tee /dev/stderr | grep -o 'https://[^ ]*\.workers\.dev' | head -1)
+          DEPLOY_URL=$(./node_modules/.bin/wrangler pages deploy \
+            .vercel/output/static --project-name ayushpatraphotography \
+            2>&1 | tee /dev/stderr | grep -o 'https://[^ ]*\.pages\.dev' | head -1)
           echo "deployment-url=${DEPLOY_URL}" >> "$GITHUB_OUTPUT"
 
       - name: Comment preview URL on PR
