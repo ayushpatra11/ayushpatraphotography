@@ -94,7 +94,11 @@ jobs:
       - run: npm ci
 
       - name: Build (next build + Cloudflare transform)
-        run: npm run build
+        # Must call @cloudflare/next-on-pages directly — NOT via npm run build.
+        # @cloudflare/next-on-pages internally runs `vercel build`, which executes
+        # the package.json `build` script, creating an infinite loop if that
+        # script is itself @cloudflare/next-on-pages.
+        run: npx @cloudflare/next-on-pages
         env:
           ADMIN_PASSWORD: ci-placeholder
           AUTH_SECRET: ci-placeholder-32-chars-minimum-x
