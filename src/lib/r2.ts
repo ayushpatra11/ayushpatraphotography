@@ -3,7 +3,7 @@ import type { Manifest, PhotoMeta } from '@/types'
 export async function getManifest(bucket: R2Bucket): Promise<Manifest> {
   const obj = await bucket.get('_manifest.json')
   if (!obj) return { photos: [] }
-  return obj.json<Manifest>()
+  return (await obj.json()) as Manifest
 }
 
 export async function putManifest(bucket: R2Bucket, manifest: Manifest): Promise<void> {

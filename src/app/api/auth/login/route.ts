@@ -6,7 +6,7 @@ export const runtime = 'edge'
 export async function POST(request: Request) {
   try {
     const { env } = getRequestContext()
-    const { password } = await request.json<{ password: string }>()
+    const { password } = (await request.json()) as { password: string }
 
     if (!password || password !== env.ADMIN_PASSWORD) {
       return Response.json({ error: 'Invalid password' }, { status: 401 })
