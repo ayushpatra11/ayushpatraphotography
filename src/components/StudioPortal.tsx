@@ -34,7 +34,7 @@ export default function StudioPortal() {
   // Load photos when in studio
   const loadPhotos = useCallback(async () => {
     const r = await fetch('/api/photos')
-    const { photos } = await r.json()
+    const { photos } = (await r.json()) as { photos: PhotoMeta[] }
     setPhotos(photos ?? [])
   }, [])
 

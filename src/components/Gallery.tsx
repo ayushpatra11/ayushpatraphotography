@@ -28,7 +28,7 @@ export default function Gallery() {
   // Fetch photos
   useEffect(() => {
     fetch('/api/photos')
-      .then(r => r.json())
+      .then(r => r.json() as Promise<{ photos: PhotoMeta[] }>)
       .then(({ photos }) => setPhotos(photos ?? []))
       .catch(() => setPhotos([]))
       .finally(() => setLoading(false))

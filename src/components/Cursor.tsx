@@ -11,13 +11,18 @@ export default function Cursor() {
     const dot = dotRef.current
     if (!ring || !dot) return
 
+    // Re-bind after the null guard so nested function declarations
+    // see HTMLDivElement instead of HTMLDivElement | null.
+    const r = ring
+    const d = dot
+
     let mx = 0, my = 0, rx = 0, ry = 0
     let raf: number
 
     function onMove(e: MouseEvent) {
       mx = e.clientX
       my = e.clientY
-      dot.style.transform = `translate(calc(${mx}px - 50%), calc(${my}px - 50%))`
+      d.style.transform = `translate(calc(${mx}px - 50%), calc(${my}px - 50%))`
     }
 
     function lerp(a: number, b: number, t: number) { return a + (b - a) * t }
@@ -25,7 +30,7 @@ export default function Cursor() {
     function tick() {
       rx = lerp(rx, mx, 0.11)
       ry = lerp(ry, my, 0.11)
-      ring.style.transform = `translate(calc(${rx}px - 50%), calc(${ry}px - 50%))`
+      r.style.transform = `translate(calc(${rx}px - 50%), calc(${ry}px - 50%))`
       raf = requestAnimationFrame(tick)
     }
 
