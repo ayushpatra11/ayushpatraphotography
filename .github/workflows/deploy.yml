@@ -63,9 +63,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Next.js build + Cloudflare transform
-        # npm run build now runs @cloudflare/next-on-pages (which runs next build
-        # internally). This validates both compilation and CF edge compatibility.
+      - name: Next.js build
         run: npm run build
 
   # ── Cloudflare Pages deploy ───────────────────────────────
@@ -91,11 +89,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Build (next build + Cloudflare transform)
-        # Must call @cloudflare/next-on-pages directly — NOT via npm run build.
-        # @cloudflare/next-on-pages internally runs `vercel build`, which executes
-        # the package.json `build` script, creating an infinite loop if that
-        # script is itself @cloudflare/next-on-pages.
+      - name: Build (Cloudflare Pages transform)
         run: npx @cloudflare/next-on-pages
 
       - name: Deploy to Cloudflare Pages

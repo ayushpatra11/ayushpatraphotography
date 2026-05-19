@@ -1,6 +1,7 @@
 import { getRequestContext } from '@cloudflare/next-on-pages'
 import { getManifest, putManifest, extFromMime } from '@/lib/r2'
 import { json } from '@/lib/response'
+import { verifySession, getSessionCookie } from '@/lib/auth'
 import type { PhotoMeta } from '@/types'
 
 export const runtime = 'edge'
@@ -20,6 +21,11 @@ export async function GET(): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   try {
     const { env } = getRequestContext()
+
+    const token = getSessionCookie(request)
+    if (!token || !(await verifySession(token, env.AUTH_SECRET))) {
+      return json({ error: 'Authentication required' }, { status: 401 })
+    }
 
     const formData = await request.formData()
     const image = formData.get('image') as File | null

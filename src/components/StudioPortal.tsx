@@ -3,7 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { PhotoMeta } from '@/types'
 
+type View = 'loading' | 'login' | 'studio'
+
 export default function StudioPortal() {
+  const [view, setView] = useState<View>('loading')
+  const [password, setPassword] = useState('')
+  const [loginError, setLoginError] = useState('')
+  const [loggingIn, setLoggingIn] = useState(false)
+
   const [photos, setPhotos] = useState<PhotoMeta[]>([])
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
@@ -18,13 +25,55 @@ export default function StudioPortal() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    fetch('/api/auth/check')
+      .then(r => {
+        if (r.ok) {
+          loadPhotos()
+          setView('studio')
+        } else {
+          setView('login')
+        }
+      })
+      .catch(() => setView('login'))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const loadPhotos = useCallback(async () => {
     const r = await fetch('/api/photos')
     const { photos } = (await r.json()) as { photos: PhotoMeta[] }
     setPhotos(photos ?? [])
   }, [])
 
-  useEffect(() => { loadPhotos() }, [loadPhotos])
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault()
+    setLoggingIn(true)
+    setLoginError('')
+    try {
+      const r = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+      if (r.ok) {
+        setPassword('')
+        await loadPhotos()
+        setView('studio')
+      } else {
+        const { error } = await r.json() as { error: string }
+        setLoginError(error ?? 'Wrong password')
+      }
+    } catch {
+      setLoginError('Login failed — check your connection')
+    } finally {
+      setLoggingIn(false)
+    }
+  }
+
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    setPhotos([])
+    setView('login')
+  }
 
   function onFiles(files: FileList | File[]) {
     const imgs = Array.from(files).filter(f => f.type.startsWith('image/'))
@@ -46,7 +95,12 @@ export default function StudioPortal() {
       fd.append('date', date)
       fd.append('device', device)
       fd.append('tags', tags)
-      await fetch('/api/photos', { method: 'POST', body: fd })
+      const r = await fetch('/api/photos', { method: 'POST', body: fd })
+      if (r.status === 401) {
+        setView('login')
+        setUploading(false)
+        return
+      }
       setUploadProgress(Math.round(((i + 1) / selectedFiles.length) * 100))
     }
 
@@ -59,9 +113,46 @@ export default function StudioPortal() {
   }
 
   async function handleDelete(id: string) {
-    await fetch(`/api/photos/${id}`, { method: 'DELETE' })
+    const r = await fetch(`/api/photos/${id}`, { method: 'DELETE' })
+    if (r.status === 401) {
+      setView('login')
+      return
+    }
     setDeleteConfirm(null)
     setPhotos(prev => prev.filter(p => p.id !== id))
+  }
+
+  if (view === 'loading') {
+    return (
+      <div className="studio-auth">
+        <p className="studio-auth-loading">Loading…</p>
+      </div>
+    )
+  }
+
+  if (view === 'login') {
+    return (
+      <div className="studio-auth">
+        <form className="studio-auth-form" onSubmit={handleLogin}>
+          <h1 className="studio-auth-title">Studio</h1>
+          <p className="studio-auth-sub">Enter your password to continue</p>
+          <input
+            className="studio-auth-input"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            autoFocus
+            autoComplete="current-password"
+          />
+          {loginError && <p className="studio-auth-error">{loginError}</p>}
+          <button className="studio-auth-btn" type="submit" disabled={loggingIn || !password}>
+            {loggingIn ? 'Signing in…' : 'Sign in'}
+          </button>
+          <a href="/" className="studio-auth-back">← Portfolio</a>
+        </form>
+      </div>
+    )
   }
 
   return (
@@ -69,6 +160,7 @@ export default function StudioPortal() {
       <header className="studio-header">
         <span className="studio-header-title">Studio</span>
         <div className="studio-header-right">
+          <button className="studio-logout" onClick={handleLogout}>Sign out</button>
           <a href="/" className="studio-back">← Portfolio</a>
         </div>
       </header>
