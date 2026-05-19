@@ -232,7 +232,7 @@ body.cursor-hover .cursor-ring {
   cursor: none;
   border-radius: var(--radius);
   background: #111;
-  transform-style: preserve-3d;
+  contain: layout;
   transition: transform 0.35s var(--ease-out);
 }
 

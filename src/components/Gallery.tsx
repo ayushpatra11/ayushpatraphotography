@@ -15,6 +15,7 @@ export default function Gallery() {
   const [photos, setPhotos] = useState<PhotoMeta[]>([])
   const [loading, setLoading] = useState(true)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const tileRect = useRef<DOMRect | null>(null)
   const heroRef = useRef<HTMLElement>(null)
   const heroTitle1 = useRef<HTMLSpanElement>(null)
   const heroTitle2 = useRef<HTMLSpanElement>(null)
@@ -70,17 +71,13 @@ export default function Gallery() {
       const { ScrollTrigger } = await import('gsap/ScrollTrigger')
       gsap.registerPlugin(ScrollTrigger)
 
-      const items = document.querySelectorAll('.gallery-item')
-      items.forEach((el, i) => {
-        gsap.fromTo(
-          el,
+      // batch() uses a single IntersectionObserver for all items instead of N
+      ScrollTrigger.batch('.gallery-item', {
+        onEnter: els => gsap.fromTo(els,
           { opacity: 0, y: 32 },
-          {
-            opacity: 1, y: 0, duration: 0.75, delay: (i % 3) * 0.06,
-            ease: 'power3.out',
-            scrollTrigger: { trigger: el, start: 'top 90%' },
-          },
-        )
+          { opacity: 1, y: 0, duration: 0.75, ease: 'power3.out', stagger: 0.06 },
+        ),
+        start: 'top 90%',
       })
 
       cleanup = () => ScrollTrigger.getAll().forEach(t => t.kill())
@@ -111,15 +108,20 @@ export default function Gallery() {
     })
   }, [photos.length])
 
+  function onTileMouseEnter(e: React.MouseEvent<HTMLDivElement>) {
+    // Cache rect on enter — getBoundingClientRect on every mousemove forces layout
+    tileRect.current = e.currentTarget.getBoundingClientRect()
+  }
   function onTileMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const el = e.currentTarget
-    const r = el.getBoundingClientRect()
+    const r = tileRect.current
+    if (!r) return
     const x = (e.clientX - r.left) / r.width - 0.5
     const y = (e.clientY - r.top) / r.height - 0.5
-    el.style.transform = `perspective(900px) rotateX(${-y * 8}deg) rotateY(${x * 8}deg) scale(1.02)`
+    e.currentTarget.style.transform = `perspective(900px) rotateX(${-y * 8}deg) rotateY(${x * 8}deg) scale(1.02)`
   }
   function onTileMouseLeave(e: React.MouseEvent<HTMLDivElement>) {
-    e.currentTarget.style.transform = 'perspective(900px) rotateX(0deg) rotateY(0deg) scale(1)'
+    tileRect.current = null
+    e.currentTarget.style.transform = ''
   }
 
   return (
@@ -191,6 +193,7 @@ export default function Gallery() {
                 key={photo.id}
                 className="gallery-item"
                 onClick={() => setLightboxIndex(i)}
+                onMouseEnter={onTileMouseEnter}
                 onMouseMove={onTileMouseMove}
                 onMouseLeave={onTileMouseLeave}
                 role="button"
