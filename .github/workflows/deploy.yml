@@ -1,0 +1,134 @@
+name: CI / Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── TypeScript ────────────────────────────────────────────
+  typecheck:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+  # ── ESLint ───────────────────────────────────────────────
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+  # ── Next.js build ────────────────────────────────────────
+  # Gates on typecheck + lint so we don't waste build minutes on broken code.
+  # Runs `next build` (standard, not CF-transformed) for fast compile validation.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Next.js build + Cloudflare transform
+        # npm run build now runs @cloudflare/next-on-pages (which runs next build
+        # internally). This validates both compilation and CF edge compatibility.
+        run: npm run build
+        env:
+          ADMIN_PASSWORD: ci-placeholder
+          AUTH_SECRET: ci-placeholder-32-chars-minimum-x
+
+  # ── Cloudflare Workers deploy ─────────────────────────────
+  # wrangler deploy reads wrangler.toml (main + [assets]) and publishes
+  # the @cloudflare/next-on-pages output as a Worker with static assets.
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: [build]
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build (next build + Cloudflare transform)
+        # Must call @cloudflare/next-on-pages directly — NOT via npm run build.
+        # @cloudflare/next-on-pages internally runs `vercel build`, which executes
+        # the package.json `build` script, creating an infinite loop if that
+        # script is itself @cloudflare/next-on-pages.
+        run: npx @cloudflare/next-on-pages
+        env:
+          ADMIN_PASSWORD: ci-placeholder
+          AUTH_SECRET: ci-placeholder-32-chars-minimum-x
+
+      - name: Deploy to Cloudflare Workers
+        # wrangler.toml declares main + [assets] so `wrangler deploy` picks up
+        # .vercel/output/static/_worker.js and serves the rest as static assets.
+        # Uses wrangler@^3 from devDependencies — avoids v4 CLI changes.
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          DEPLOY_URL=$(./node_modules/.bin/wrangler deploy \
+            2>&1 | tee /dev/stderr | grep -o 'https://[^ ]*\.workers\.dev' | head -1)
+          echo "deployment-url=${DEPLOY_URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Comment preview URL on PR
+        if: github.event_name == 'pull_request' && steps.deploy.outputs.deployment-url != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                '### Cloudflare Pages Preview',
+                '',
+                `**URL:** ${{ steps.deploy.outputs.deployment-url }}`,
+                `**Commit:** \`${context.sha.slice(0, 7)}\``,
+              ].join('\n')
+            })

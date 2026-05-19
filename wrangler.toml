@@ -1,0 +1,20 @@
+name = "ayushpatraphotography"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# @cloudflare/next-on-pages writes _worker.js as the Worker entry point
+# and copies all other output into .vercel/output/static as static assets.
+# Both wrangler deploy (Workers Builds CI) and our GitHub Actions use this.
+main = ".vercel/output/static/_worker.js"
+
+[assets]
+directory = ".vercel/output/static"
+
+# Create this bucket in Cloudflare dashboard → R2 before first deploy.
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "ayushpatraphotography-photos"
+
+# Secrets — set in Cloudflare dashboard → Workers & Pages → your worker → Settings → Variables:
+#   ADMIN_PASSWORD — password for the /studio upload portal
+#   AUTH_SECRET    — any random 32-char string (signs session cookies)
