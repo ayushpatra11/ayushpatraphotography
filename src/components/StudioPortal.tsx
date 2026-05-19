@@ -3,13 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { PhotoMeta } from '@/types'
 
-type View = 'loading' | 'login' | 'studio'
-
 export default function StudioPortal() {
-  const [view, setView] = useState<View>('loading')
-  const [password, setPassword] = useState('')
-  const [loginError, setLoginError] = useState('')
-  const [loggingIn, setLoggingIn] = useState(false)
   const [photos, setPhotos] = useState<PhotoMeta[]>([])
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
@@ -24,55 +18,13 @@ export default function StudioPortal() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Check auth on load
-  useEffect(() => {
-    fetch('/api/auth/check')
-      .then(r => setView(r.ok ? 'studio' : 'login'))
-      .catch(() => setView('login'))
-  }, [])
-
-  // Load photos when in studio
   const loadPhotos = useCallback(async () => {
     const r = await fetch('/api/photos')
     const { photos } = (await r.json()) as { photos: PhotoMeta[] }
     setPhotos(photos ?? [])
   }, [])
 
-  useEffect(() => {
-    if (view === 'studio') loadPhotos()
-  }, [view, loadPhotos])
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
-    setLoggingIn(true)
-    setLoginError('')
-    try {
-      const r = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      })
-      if (r.ok) {
-        setView('studio')
-      } else {
-        let msg = 'Login failed.'
-        try {
-          const body = (await r.json()) as { error?: string }
-          if (body.error) msg = body.error
-        } catch { /* use default msg */ }
-        setLoginError(msg)
-      }
-    } finally {
-      setLoggingIn(false)
-    }
-  }
-
-  async function handleLogout() {
-    await fetch('/api/auth/logout', { method: 'POST' })
-    setView('login')
-    setPassword('')
-    setPhotos([])
-  }
+  useEffect(() => { loadPhotos() }, [loadPhotos])
 
   function onFiles(files: FileList | File[]) {
     const imgs = Array.from(files).filter(f => f.type.startsWith('image/'))
@@ -112,53 +64,12 @@ export default function StudioPortal() {
     setPhotos(prev => prev.filter(p => p.id !== id))
   }
 
-  // --- RENDER ---
-
-  if (view === 'loading') {
-    return (
-      <div className="studio-loading">
-        <div className="studio-spinner" />
-      </div>
-    )
-  }
-
-  if (view === 'login') {
-    return (
-      <div className="studio-login">
-        <div className="studio-login-panel">
-          <h1 className="studio-logo">Studio</h1>
-          <p className="studio-login-sub">Ayush Patra Photography</p>
-          <form onSubmit={handleLogin} className="studio-login-form">
-            <div className="field-group">
-              <label className="field-label" htmlFor="password">Password</label>
-              <input
-                id="password"
-                className="field-input"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Enter studio password"
-                autoFocus
-                required
-              />
-            </div>
-            {loginError && <p className="studio-error">{loginError}</p>}
-            <button className="btn-submit" type="submit" disabled={loggingIn}>
-              {loggingIn ? 'Verifying…' : 'Enter studio'}
-            </button>
-          </form>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="studio">
       <header className="studio-header">
         <span className="studio-header-title">Studio</span>
         <div className="studio-header-right">
           <a href="/" className="studio-back">← Portfolio</a>
-          <button className="studio-logout" onClick={handleLogout}>Log out</button>
         </div>
       </header>
 
@@ -167,7 +78,6 @@ export default function StudioPortal() {
         <section className="studio-section">
           <h2 className="studio-section-title">Upload photographs</h2>
           <form onSubmit={handleUpload}>
-            {/* Drop zone */}
             <div
               className={`drop-zone${dragOver ? ' drag-over' : ''}`}
               onDragOver={e => { e.preventDefault(); setDragOver(true) }}
@@ -208,7 +118,6 @@ export default function StudioPortal() {
               )}
             </div>
 
-            {/* Metadata fields */}
             <div className="form-fields">
               <div className="field-group">
                 <label className="field-label" htmlFor="caption">Caption</label>
