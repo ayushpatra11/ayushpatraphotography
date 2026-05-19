@@ -5,12 +5,13 @@ export const runtime = 'edge'
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params
     const { env } = getRequestContext()
     const manifest = await getManifest(env.R2_BUCKET)
-    const photo = manifest.photos.find(p => p.id === params.id)
+    const photo = manifest.photos.find(p => p.id === id)
     if (!photo) return new Response('Not found', { status: 404 })
 
     const obj = await env.R2_BUCKET.get(photo.key)

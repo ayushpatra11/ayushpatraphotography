@@ -6,9 +6,10 @@ export const runtime = 'edge'
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params
     const { env } = getRequestContext()
 
     const cookie = request.headers.get('cookie') ?? ''
@@ -18,7 +19,7 @@ export async function DELETE(
     }
 
     const manifest = await getManifest(env.R2_BUCKET)
-    const idx = manifest.photos.findIndex(p => p.id === params.id)
+    const idx = manifest.photos.findIndex(p => p.id === id)
     if (idx === -1) return Response.json({ error: 'Not found' }, { status: 404 })
 
     const [removed] = manifest.photos.splice(idx, 1)
