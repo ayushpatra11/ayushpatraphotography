@@ -67,9 +67,6 @@ jobs:
         # npm run build now runs @cloudflare/next-on-pages (which runs next build
         # internally). This validates both compilation and CF edge compatibility.
         run: npm run build
-        env:
-          ADMIN_PASSWORD: ci-placeholder
-          AUTH_SECRET: ci-placeholder-32-chars-minimum-x
 
   # ── Cloudflare Workers deploy ─────────────────────────────
   # wrangler deploy reads wrangler.toml (main + [assets]) and publishes
@@ -99,9 +96,6 @@ jobs:
         # the package.json `build` script, creating an infinite loop if that
         # script is itself @cloudflare/next-on-pages.
         run: npx @cloudflare/next-on-pages
-        env:
-          ADMIN_PASSWORD: ci-placeholder
-          AUTH_SECRET: ci-placeholder-32-chars-minimum-x
 
       - name: Deploy to Cloudflare Workers
         # wrangler.toml declares main + [assets] so `wrangler deploy` picks up

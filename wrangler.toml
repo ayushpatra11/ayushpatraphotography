@@ -15,6 +15,3 @@ directory = ".vercel/output/static"
 binding = "R2_BUCKET"
 bucket_name = "ayushpatraphotography-photos"
 
-# Secrets — set in Cloudflare dashboard → Workers & Pages → your worker → Settings → Variables:
-#   ADMIN_PASSWORD — password for the /studio upload portal
-#   AUTH_SECRET    — any random 32-char string (signs session cookies)
