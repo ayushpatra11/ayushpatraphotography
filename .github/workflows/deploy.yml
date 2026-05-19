@@ -63,15 +63,17 @@ jobs:
 
       - run: npm ci
 
-      - name: Next.js build
+      - name: Next.js build + Cloudflare transform
+        # npm run build now runs @cloudflare/next-on-pages (which runs next build
+        # internally). This validates both compilation and CF edge compatibility.
         run: npm run build
         env:
           ADMIN_PASSWORD: ci-placeholder
           AUTH_SECRET: ci-placeholder-32-chars-minimum-x
 
-  # ── Cloudflare Pages deploy ───────────────────────────────
-  # Re-runs the build via @cloudflare/next-on-pages (which wraps next build
-  # with the CF edge runtime transform), then publishes.
+  # ── Cloudflare Workers deploy ─────────────────────────────
+  # wrangler deploy reads wrangler.toml (main + [assets]) and publishes
+  # the @cloudflare/next-on-pages output as a Worker with static assets.
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
@@ -91,25 +93,23 @@ jobs:
 
       - run: npm ci
 
-      - name: Build for Cloudflare Pages
-        run: npx @cloudflare/next-on-pages
+      - name: Build (next build + Cloudflare transform)
+        run: npm run build
         env:
           ADMIN_PASSWORD: ci-placeholder
           AUTH_SECRET: ci-placeholder-32-chars-minimum-x
 
-      - name: Publish to Cloudflare Pages
-        # Use the wrangler@^3 from devDependencies (npm ci already ran above).
-        # Avoids cloudflare/wrangler-action pulling in wrangler v4, which
-        # changed the pages deploy CLI interface.
+      - name: Deploy to Cloudflare Workers
+        # wrangler.toml declares main + [assets] so `wrangler deploy` picks up
+        # .vercel/output/static/_worker.js and serves the rest as static assets.
+        # Uses wrangler@^3 from devDependencies — avoids v4 CLI changes.
         id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          DEPLOY_URL=$(./node_modules/.bin/wrangler pages deploy .vercel/output/static \
-            --project-name=ayushpatraphotography \
-            --branch=${{ github.ref_name }} \
-            2>&1 | tee /dev/stderr | grep -o 'https://[^ ]*\.pages\.dev' | head -1)
+          DEPLOY_URL=$(./node_modules/.bin/wrangler deploy \
+            2>&1 | tee /dev/stderr | grep -o 'https://[^ ]*\.workers\.dev' | head -1)
           echo "deployment-url=${DEPLOY_URL}" >> "$GITHUB_OUTPUT"
 
       - name: Comment preview URL on PR
