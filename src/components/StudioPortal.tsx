@@ -55,12 +55,7 @@ export default function StudioPortal() {
       if (r.ok) {
         setView('studio')
       } else {
-        let msg = 'Login failed.'
-        try {
-          const body = (await r.json()) as { error?: string }
-          if (body.error) msg = body.error
-        } catch { /* use default msg */ }
-        setLoginError(msg)
+        setLoginError('Wrong password.')
       }
     } finally {
       setLoggingIn(false)

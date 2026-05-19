@@ -18,12 +18,6 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# TypeScript build cache
-tsconfig.tsbuildinfo
-
-# Next.js generated types (auto-regenerated on dev/build)
-next-env.d.ts
-
 # Logs
 *.log
 npm-debug.log*
