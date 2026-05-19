@@ -1,58 +1,126 @@
-name: Deploy to Cloudflare Pages
+name: CI / Deploy
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
+
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  deploy:
+  # ── TypeScript ────────────────────────────────────────────
+  typecheck:
+    name: TypeScript
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+  # ── ESLint ───────────────────────────────────────────────
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+  # ── Next.js build ────────────────────────────────────────
+  # Gates on typecheck + lint so we don't waste build minutes on broken code.
+  # Runs `next build` (standard, not CF-transformed) for fast compile validation.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Next.js build
+        run: npm run build
+        env:
+          ADMIN_PASSWORD: ci-placeholder
+          AUTH_SECRET: ci-placeholder-32-chars-minimum-x
+
+  # ── Cloudflare Pages deploy ───────────────────────────────
+  # Re-runs the build via @cloudflare/next-on-pages (which wraps next build
+  # with the CF edge runtime transform), then publishes.
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: [build]
     permissions:
       contents: read
       deployments: write
       pull-requests: write
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
 
       - name: Build for Cloudflare Pages
         run: npx @cloudflare/next-on-pages
         env:
-          # Needed at build time so Next.js can type-check env references
-          ADMIN_PASSWORD: placeholder
-          AUTH_SECRET: placeholder
+          ADMIN_PASSWORD: ci-placeholder
+          AUTH_SECRET: ci-placeholder-32-chars-minimum-x
 
-      - name: Deploy to Cloudflare Pages
+      - name: Publish to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         id: deploy
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .vercel/output/static --project-name=ayushpatraphotography --branch=${{ github.ref_name }}
+          command: >
+            pages deploy .vercel/output/static
+            --project-name=ayushpatraphotography
+            --branch=${{ github.ref_name }}
 
       - name: Comment preview URL on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
-            const url = '${{ steps.deploy.outputs.deployment-url }}';
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `### Cloudflare Pages Preview\n\n**URL:** ${url}\n\nCommit: \`${context.sha.slice(0, 7)}\``
-            });
+              body: [
+                '### Cloudflare Pages Preview',
+                '',
+                `**URL:** ${{ steps.deploy.outputs.deployment-url }}`,
+                `**Commit:** \`${context.sha.slice(0, 7)}\``,
+              ].join('\n')
+            })
