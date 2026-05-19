@@ -97,16 +97,11 @@
 //   }
 // }
 
-
 export const runtime = 'edge'
 
-export async function POST(request: Request) {
+export async function POST() {
   return Response.json({
-    step: 'api-hit',
     ok: true,
-    env: {
-      admin: !!process.env.ADMIN_PASSWORD,
-      secret: !!process.env.AUTH_SECRET,
-    },
+    route: 'login working'
   })
 }
