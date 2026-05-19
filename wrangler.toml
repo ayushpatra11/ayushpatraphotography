@@ -2,9 +2,13 @@ name = "ayushpatraphotography"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-# @cloudflare/next-on-pages outputs a multi-file worker (_worker.js/ directory).
-# scripts/bundle-worker.mjs patches out the variable dynamic imports and runs
-# esbuild to produce a single-file bundle that wrangler deploy can upload.
+# Build command runs automatically before `wrangler deploy`.
+# @cloudflare/next-on-pages outputs a multi-file worker (_worker.js/ directory);
+# bundle-worker.mjs patches variable dynamic imports and runs esbuild to produce
+# a single file that wrangler can upload.
+[build]
+command = "npx @cloudflare/next-on-pages && node scripts/bundle-worker.mjs"
+
 main = ".vercel/output/static/_worker.bundled.js"
 
 [assets]
