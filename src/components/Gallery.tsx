@@ -18,7 +18,6 @@ export default function Gallery() {
   const [loading, setLoading] = useState(true)
   const [rendered, setRendered] = useState(PAGE)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
-  const tileRect = useRef<DOMRect | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const heroRef = useRef<HTMLElement>(null)
   const heroTitle1 = useRef<HTMLSpanElement>(null)
@@ -92,20 +91,6 @@ export default function Gallery() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  function onTileMouseEnter(e: React.MouseEvent<HTMLDivElement>) {
-    tileRect.current = e.currentTarget.getBoundingClientRect()
-  }
-  function onTileMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    const r = tileRect.current
-    if (!r) return
-    const x = (e.clientX - r.left) / r.width - 0.5
-    const y = (e.clientY - r.top) / r.height - 0.5
-    e.currentTarget.style.transform = `perspective(900px) rotateX(${-y * 8}deg) rotateY(${x * 8}deg) scale(1.02)`
-  }
-  function onTileMouseLeave(e: React.MouseEvent<HTMLDivElement>) {
-    tileRect.current = null
-    e.currentTarget.style.transform = ''
-  }
 
   const visiblePhotos = photos.slice(0, rendered)
 
@@ -179,9 +164,6 @@ export default function Gallery() {
                 className="gallery-item"
                 style={{ animationDelay: `${(i % 3) * 0.06}s` }}
                 onClick={() => setLightboxIndex(i)}
-                onMouseEnter={onTileMouseEnter}
-                onMouseMove={onTileMouseMove}
-                onMouseLeave={onTileMouseLeave}
                 role="button"
                 tabIndex={0}
                 aria-label={photo.caption || `Photo ${i + 1}`}
