@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import type { PhotoMeta } from '@/types'
 import Lightbox from './Lightbox'
 
+const PAGE = 12
+
 function formatDate(d: string) {
   if (!d) return ''
   try {
@@ -14,8 +16,10 @@ function formatDate(d: string) {
 export default function Gallery() {
   const [photos, setPhotos] = useState<PhotoMeta[]>([])
   const [loading, setLoading] = useState(true)
+  const [rendered, setRendered] = useState(PAGE)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const tileRect = useRef<DOMRect | null>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
   const heroRef = useRef<HTMLElement>(null)
   const heroTitle1 = useRef<HTMLSpanElement>(null)
   const heroTitle2 = useRef<HTMLSpanElement>(null)
@@ -26,7 +30,7 @@ export default function Gallery() {
   const headerLogo = useRef<HTMLAnchorElement>(null)
   const headerNav = useRef<HTMLElement>(null)
 
-  // Fetch photos
+  // Fetch all photo metadata once (small JSON), render progressively in batches
   useEffect(() => {
     fetch('/api/photos')
       .then(r => r.json() as Promise<{ photos: PhotoMeta[] }>)
@@ -34,6 +38,22 @@ export default function Gallery() {
       .catch(() => setPhotos([]))
       .finally(() => setLoading(false))
   }, [])
+
+  // When the sentinel div scrolls into view (400px before bottom of viewport),
+  // add the next batch of images to the DOM. This keeps concurrent edge requests
+  // capped at ~PAGE instead of firing N requests all at once on page load.
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el || loading) return
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setRendered(n => Math.min(n + PAGE, photos.length))
+      },
+      { rootMargin: '400px' },
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [loading, photos.length])
 
   // Hero GSAP animation on mount
   useEffect(() => {
@@ -61,32 +81,6 @@ export default function Gallery() {
     return () => cleanup?.()
   }, [])
 
-  // Gallery scroll-reveal after photos load
-  useEffect(() => {
-    if (loading || photos.length === 0) return
-    let cleanup: (() => void) | undefined
-
-    async function revealItems() {
-      const { gsap } = await import('gsap')
-      const { ScrollTrigger } = await import('gsap/ScrollTrigger')
-      gsap.registerPlugin(ScrollTrigger)
-
-      // batch() uses a single IntersectionObserver for all items instead of N
-      ScrollTrigger.batch('.gallery-item', {
-        onEnter: els => gsap.fromTo(els,
-          { opacity: 0, y: 32 },
-          { opacity: 1, y: 0, duration: 0.75, ease: 'power3.out', stagger: 0.06 },
-        ),
-        start: 'top 90%',
-      })
-
-      cleanup = () => ScrollTrigger.getAll().forEach(t => t.kill())
-    }
-
-    revealItems()
-    return () => cleanup?.()
-  }, [photos, loading])
-
   // Header scroll shadow
   useEffect(() => {
     const header = document.getElementById('header')
@@ -99,7 +93,6 @@ export default function Gallery() {
   }, [])
 
   function onTileMouseEnter(e: React.MouseEvent<HTMLDivElement>) {
-    // Cache rect on enter — getBoundingClientRect on every mousemove forces layout
     tileRect.current = e.currentTarget.getBoundingClientRect()
   }
   function onTileMouseMove(e: React.MouseEvent<HTMLDivElement>) {
@@ -113,6 +106,8 @@ export default function Gallery() {
     tileRect.current = null
     e.currentTarget.style.transform = ''
   }
+
+  const visiblePhotos = photos.slice(0, rendered)
 
   return (
     <>
@@ -171,7 +166,7 @@ export default function Gallery() {
         )}
 
         <div className="gallery-grid">
-          {photos.map((photo, i) => {
+          {visiblePhotos.map((photo, i) => {
             const meta = [
               photo.location && { prefix: 'At', text: photo.location },
               photo.date && { prefix: 'On', text: formatDate(photo.date) },
@@ -182,6 +177,7 @@ export default function Gallery() {
               <div
                 key={photo.id}
                 className="gallery-item"
+                style={{ animationDelay: `${(i % 3) * 0.06}s` }}
                 onClick={() => setLightboxIndex(i)}
                 onMouseEnter={onTileMouseEnter}
                 onMouseMove={onTileMouseMove}
@@ -213,6 +209,11 @@ export default function Gallery() {
               </div>
             )
           })}
+
+          {/* Sentinel: becomes visible 400px before the viewport bottom, triggering the next batch */}
+          {!loading && rendered < photos.length && (
+            <div ref={sentinelRef} className="gallery-sentinel" aria-hidden="true" />
+          )}
         </div>
       </section>
 
@@ -222,7 +223,7 @@ export default function Gallery() {
         <a href="https://www.instagram.com/patrasarchive/" target="_blank" rel="noopener noreferrer" className="footer-instagram">@patrasarchive</a>
       </footer>
 
-      {/* Lightbox */}
+      {/* Lightbox — receives full photos array so arrow navigation works across all photos */}
       {lightboxIndex !== null && (
         <Lightbox
           photos={photos}
