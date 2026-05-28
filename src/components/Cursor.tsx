@@ -14,15 +14,20 @@ export default function Cursor() {
     let mx = 0, my = 0, rx = 0, ry = 0
     let raf = 0
     let settled = true
+    let lastTime = 0
 
-    const lerp = (a: number, b: number, t: number) => a + (b - a) * t
+    const tick = (now: number) => {
+      // Time-based lerp: ring catches up at constant physical speed regardless
+      // of dropped frames. Frame-dependent lerp jumps visibly at 32ms frames.
+      const dt = lastTime ? Math.min(now - lastTime, 64) : 16.67
+      lastTime = now
+      const alpha = 1 - Math.pow(0.89, dt / 16.67)
 
-    const tick = () => {
-      rx = lerp(rx, mx, 0.11)
-      ry = lerp(ry, my, 0.11)
+      rx += (mx - rx) * alpha
+      ry += (my - ry) * alpha
       ring.style.transform = `translate(calc(${rx}px - 50%), calc(${ry}px - 50%))`
-      // Stop the RAF loop once the ring has caught up — no wasted frames
-      if (Math.abs(rx - mx) < 0.5 && Math.abs(ry - my) < 0.5) {
+
+      if (Math.abs(rx - mx) < 0.3 && Math.abs(ry - my) < 0.3) {
         settled = true
         raf = 0
         return
@@ -36,6 +41,7 @@ export default function Cursor() {
       dot.style.transform = `translate(calc(${mx}px - 50%), calc(${my}px - 50%))`
       if (settled) {
         settled = false
+        lastTime = 0
         raf = requestAnimationFrame(tick)
       }
     }
