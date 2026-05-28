@@ -192,6 +192,7 @@ export default function Gallery() {
                   src={`/api/photos/${photo.id}/image`}
                   alt={photo.caption || ''}
                   loading="lazy"
+                  onLoad={e => (e.currentTarget.closest('.gallery-item') as HTMLElement | null)?.classList.add('img-loaded')}
                 />
                 <div className="gallery-item-caption">
                   {photo.caption && <p className="caption-text">{photo.caption}</p>}

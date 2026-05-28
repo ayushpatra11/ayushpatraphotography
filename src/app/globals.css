@@ -231,15 +231,21 @@ body.cursor-hover .cursor-ring {
   overflow: hidden;
   cursor: none;
   border-radius: var(--radius);
-  background: #111;
+  background: linear-gradient(90deg, #111 25%, #181818 50%, #111 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
   contain: layout;
   transition: transform 0.35s var(--ease-out);
-  animation: gallery-in 0.7s var(--ease-out) both;
 }
 
-@keyframes gallery-in {
-  from { opacity: 0; transform: translateY(28px); }
-  to   { opacity: 1; transform: translateY(0); }
+.gallery-item.img-loaded {
+  background: #111;
+  animation: none;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* Invisible sentinel div — triggers next batch via IntersectionObserver */
@@ -253,7 +259,12 @@ body.cursor-hover .cursor-ring {
   width: 100%;
   height: auto;
   display: block;
-  transition: filter 0.4s;
+  opacity: 0;
+  transition: opacity 0.5s ease, filter 0.4s;
+}
+
+.gallery-item.img-loaded .gallery-item-img {
+  opacity: 1;
 }
 
 .gallery-item:hover .gallery-item-img {
